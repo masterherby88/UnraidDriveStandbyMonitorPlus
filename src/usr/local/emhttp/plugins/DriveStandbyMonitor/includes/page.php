@@ -16,6 +16,10 @@ $disks = array_merge_recursive(
 # Pull in some defaults
 $defaults = @parse_ini_file("$docroot/plugins/DriveStandbyMonitor/default.cfg") ?: [];
 
+# Pull in user settings (persisted under /boot/config)
+$settings = @parse_ini_file("/boot/config/plugins/DriveStandbyMonitor/settings.cfg") ?: [];
+$defaults = array_merge($defaults, $settings);
+
 # Used to strip out unused devices and limit the returned data
 class DisksInfo {
 

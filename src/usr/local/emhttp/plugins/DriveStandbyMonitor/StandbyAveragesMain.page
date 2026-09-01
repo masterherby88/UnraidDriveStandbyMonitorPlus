@@ -18,7 +18,7 @@ $DB = new DSMDB( $DB_FILE );
 # Temporary storage for $disk array that is being manipulated
 $DRIVE_STATUS = array();
 
-$days = 30;
+$days = intval($defaults["AVG_WINDOW_DAYS"] ?? 30);
 
 while ($data = $DB->getLiveDisks()){
     $DRIVE_STATUS[ $data["drive"] ]['live'] = $data["count"];

@@ -16,11 +16,8 @@ $DSM = new DisksInfo( $disks );
 $DB = new DSMDB( $DB_FILE );
 
 $allowedWindows = array(1,3,7,14,30,90,365);
-$days = 30;
-if ( isset($_GET['days']) ) {
-    $tmp = intval($_GET['days']);
-    if ( in_array($tmp, $allowedWindows) ) $days = $tmp;
-}
+$days = intval($defaults["AVG_WINDOW_DAYS"] ?? 30);
+if (!in_array($days, $allowedWindows)) $days = 30;
 
 # Temporary storage for $disk array that is being manipulated
 $DRIVE_STATUS = array();
@@ -131,6 +128,7 @@ if( count($DRIVE_STATUS) !== 0 ) {
                     <option value="<?=$w?>" <? if ($w == $days) print('selected'); ?>><?=$w?> days</option>
                 <? } ?>
             </select>
+            <input type="button" id="DSM-save-days" value="Save" style="margin-top:6px;" />
         </div>
         <?if( count($DRIVE_STATUS) === 0 ) {?>
         No data has been collected yet.
@@ -171,12 +169,12 @@ async function resetDB(){
 }
 
 document.addEventListener( 'DOMContentLoaded', () => {
-    // Days dropdown: reload with ?days=N
-    document.querySelector("#DSM-days").addEventListener("change", (e) => {
-        const val = e.target.value;
-        const url = new URL(window.location.href);
-        url.searchParams.set('days', val);
-        window.location.href = url.toString();
+    // Save average window days into /boot/config via a small PHP endpoint
+    document.querySelector("#DSM-save-days").addEventListener("click", async () => {
+        const days = document.querySelector("#DSM-days").value;
+        const response = await fetch("/plugins/<?=$scriptName?>/set_avg_window.php?days=" + encodeURIComponent(days));
+        try { await response.json(); } catch(e) {}
+        window.location.reload(true);
     });
 
     document.querySelector("#DSM-reset-db").addEventListener("click", () => {

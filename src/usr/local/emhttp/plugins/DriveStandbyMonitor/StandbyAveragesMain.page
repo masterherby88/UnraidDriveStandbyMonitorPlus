@@ -141,7 +141,22 @@ if( count($DRIVE_STATUS) !== 0 ) {
             </tr>
         <?} else {?>
         <? foreach ( $DRIVE_STATUS as $key => $val) : ?>
-            <tr standby-drive="<?=$key?>" class="standby-drive <? echo (array_key_exists("standby-drive-".$key, $_COOKIE) && $_COOKIE["standby-drive-".$key] == 'true') ? "hidden" : ""; ?>">
+            <tr standby-drive="<?=$key?>" class="standby-drive <?
+                // Visibility rules:
+                // - If user has set any explicit selections (standby-selected-* cookies exist), show ONLY selected.
+                // - Otherwise fall back to legacy hide cookies (standby-drive-*).
+                $hasSelection = false;
+                foreach ($_COOKIE as $ck => $cv) {
+                    if (strpos($ck, 'standby-selected-') === 0) { $hasSelection = true; break; }
+                }
+
+                if ($hasSelection) {
+                    $selectedKey = 'standby-selected-' . $key;
+                    if (!(array_key_exists($selectedKey, $_COOKIE) && $_COOKIE[$selectedKey] == 'true')) echo 'hidden';
+                } else {
+                    if (array_key_exists("standby-drive-".$key, $_COOKIE) && $_COOKIE["standby-drive-".$key] == 'true') echo 'hidden';
+                }
+            ?>">
                 <td>
                     <span class="view"><i class="fa fa-eye"></i></span>
                     <span class="info"></span>
@@ -346,11 +361,32 @@ document.addEventListener( 'DOMContentLoaded', () => {
             let drive = $(this).attr("standby-drive");
             let hidden = $(this).hasClass("hidden");
 
-            $.cookie('standby-drive-' + drive, !hidden, { expires: 3650, path:'/' })
+            // New behavior: selecting drives to SHOW (persisted)
+            // If any standby-selected-* cookie exists, Main shows ONLY selected.
+            let selectedCookie = 'standby-selected-' + drive;
+            let currentlySelected = $.cookie(selectedCookie) == 'true';
+            $.cookie(selectedCookie, (!currentlySelected).toString(), { expires: 3650, path:'/' });
+
+            // UI: toggle visibility immediately
             $(this).toggleClass("hidden");
         }
 
     });
+
+    // One-time migration: if user had legacy hide cookies but no selection cookies,
+    // create selection cookies for currently visible rows.
+    // (This preserves the old behavior: "these are the ones I see".)
+    let hasSelection = false;
+    for (const k of Object.keys($.cookie())) {
+        if (k.startsWith('standby-selected-')) { hasSelection = true; break; }
+    }
+    if (!hasSelection) {
+        $('.standby-drive').each(function() {
+            const drive = $(this).attr('standby-drive');
+            const hidden = $(this).hasClass('hidden');
+            $.cookie('standby-selected-' + drive, (!hidden).toString(), { expires: 3650, path:'/' });
+        });
+    }
 
     /* Update the show-standby status. */
     if ($.cookie('standby-switch') == 'false') {

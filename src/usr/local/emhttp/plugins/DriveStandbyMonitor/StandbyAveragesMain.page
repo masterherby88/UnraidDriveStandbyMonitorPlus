@@ -20,6 +20,17 @@ $DRIVE_STATUS = array();
 
 $days = intval($defaults["AVG_WINDOW_DAYS"] ?? 30);
 
+// Drives to show on Main (comma-separated serials in settings.cfg).
+// If empty => show all.
+$MAIN_VISIBLE_DRIVES = array();
+$mainVisibleRaw = $defaults["MAIN_VISIBLE_DRIVES"] ?? "";
+if ($mainVisibleRaw !== "") {
+    foreach (explode(',', $mainVisibleRaw) as $d) {
+        $d = trim($d);
+        if ($d !== "") $MAIN_VISIBLE_DRIVES[] = $d;
+    }
+}
+
 while ($data = $DB->getLiveDisksWindow($days)){
     $DRIVE_STATUS[ $data["drive"] ]['live'] = $data["count"];
 }
@@ -50,6 +61,15 @@ while ($data = $DB->getDailySpinupCounts($days)){
 }
 
 if( count($DRIVE_STATUS) !== 0 ) {
+
+    // Filter by Tools setting (Show on Main)
+    if (count($MAIN_VISIBLE_DRIVES) > 0) {
+        foreach ($DRIVE_STATUS as $key => $val) {
+            if (!in_array($key, $MAIN_VISIBLE_DRIVES)) {
+                unset($DRIVE_STATUS[$key]);
+            }
+        }
+    }
 
     # Calculate AVG
     foreach ( $DRIVE_STATUS as $key => $val){
@@ -154,7 +174,10 @@ if( count($DRIVE_STATUS) !== 0 ) {
                     $selectedKey = 'standby-selected-' . $key;
                     if (!(array_key_exists($selectedKey, $_COOKIE) && $_COOKIE[$selectedKey] == 'true')) echo 'hidden';
                 } else {
-                    if (array_key_exists("standby-drive-".$key, $_COOKIE) && $_COOKIE["standby-drive-".$key] == 'true') echo 'hidden';
+                    // If Tools has MAIN_VISIBLE_DRIVES configured, do not apply legacy hide cookies.
+                    if (count($MAIN_VISIBLE_DRIVES) === 0) {
+                        if (array_key_exists("standby-drive-".$key, $_COOKIE) && $_COOKIE["standby-drive-".$key] == 'true') echo 'hidden';
+                    }
                 }
             ?>">
                 <td>

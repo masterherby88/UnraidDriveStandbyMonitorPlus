@@ -109,6 +109,8 @@ class DSMDB extends SQLite3 {
     private $getRawDataDisksResults = false;
     private $getSpinupsTodayResults = false;
     private $getDailySpinupCountsResults = false;
+    private $getStandbyDisksWindowResults = [];
+    private $getLiveDisksWindowResults = [];
 
     public function __construct( $dbname ){
         $this->open( $dbname );
@@ -212,6 +214,31 @@ class DSMDB extends SQLite3 {
 
     }
 
+    # Get a count of standby logs for the drives within the last N days
+    public function getStandbyDisksWindow( $days = 30 ) {
+        $days = intval($days);
+        if ( $days < 1 ) $days = 1;
+        if ( $days > 365 ) $days = 365;
+
+        if ( !array_key_exists($days, $this->getStandbyDisksWindowResults) || $this->getStandbyDisksWindowResults[$days] === false ) {
+            $sql = "SELECT drive, count(state) AS count FROM standby WHERE state == 0 AND date >= strftime('%s','now','-'||$days||' day') GROUP BY drive;";
+            $this->getStandbyDisksWindowResults[$days] = $this->query( $sql );
+        }
+
+        $res = $this->getStandbyDisksWindowResults[$days];
+        if ( $res ) {
+            $row = $res->fetchArray(SQLITE3_ASSOC);
+        } else {
+            $row = false;
+        }
+
+        if ( $row === false ) {
+            $this->getStandbyDisksWindowResults[$days] = false;
+        }
+
+        return $row;
+    }
+
     # Get a count of the non-standby logs for the drives
     public function getLiveDisks(){
         if ( $this->getLiveDisksResults === false ) {
@@ -235,6 +262,31 @@ class DSMDB extends SQLite3 {
 
         return $row;
         
+    }
+
+    # Get a count of live logs for the drives within the last N days
+    public function getLiveDisksWindow( $days = 30 ){
+        $days = intval($days);
+        if ( $days < 1 ) $days = 1;
+        if ( $days > 365 ) $days = 365;
+
+        if ( !array_key_exists($days, $this->getLiveDisksWindowResults) || $this->getLiveDisksWindowResults[$days] === false ) {
+            $sql = "SELECT drive, count(state) AS count FROM standby WHERE state == 1 AND date >= strftime('%s','now','-'||$days||' day') GROUP BY drive;";
+            $this->getLiveDisksWindowResults[$days] = $this->query( $sql );
+        }
+
+        $res = $this->getLiveDisksWindowResults[$days];
+        if ( $res ) {
+            $row = $res->fetchArray(SQLITE3_ASSOC);
+        } else {
+            $row = false;
+        }
+
+        if ( $row === false ) {
+            $this->getLiveDisksWindowResults[$days] = false;
+        }
+
+        return $row;
     }
 
     # Get a lists of data entries to use on StandbyData.page

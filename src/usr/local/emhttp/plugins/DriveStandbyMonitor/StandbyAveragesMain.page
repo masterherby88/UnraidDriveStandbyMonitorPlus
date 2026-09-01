@@ -20,11 +20,11 @@ $DRIVE_STATUS = array();
 
 $days = intval($defaults["AVG_WINDOW_DAYS"] ?? 30);
 
-while ($data = $DB->getLiveDisks()){
+while ($data = $DB->getLiveDisksWindow($days)){
     $DRIVE_STATUS[ $data["drive"] ]['live'] = $data["count"];
 }
 
-while ($data = $DB->getStandbyDisks()){
+while ($data = $DB->getStandbyDisksWindow($days)){
     $DRIVE_STATUS[ $data["drive"] ]['standby'] = $data["count"];
 }
 

@@ -15,15 +15,43 @@ include_once( "./plugins/$scriptName/includes/page.php" );
 $DSM = new DisksInfo( $disks );
 $DB = new DSMDB( $DB_FILE );
 
+$allowedWindows = array(1,3,7,14,30,90,365);
+$days = 30;
+if ( isset($_GET['days']) ) {
+    $tmp = intval($_GET['days']);
+    if ( in_array($tmp, $allowedWindows) ) $days = $tmp;
+}
+
 # Temporary storage for $disk array that is being manipulated
 $DRIVE_STATUS = array();
 
-while ( $data = $DB->getStandbyDisks() ){
-    $DRIVE_STATUS[ $data["drive"] ]['standby'] = $data["count"];
+// NOTE: This page shows the icon tiles on /Tools/DriveStandbyMonitor.
+// It supports a ?days= query param to change the averaging window.
+// Standby % is still based on log-entry counts, but we limit to the last N days.
+$LIVE_COUNTS = array();
+$STANDBY_COUNTS = array();
+
+// Pull raw data and count entries within the selected window
+$cutoff = time() - ($days * 86400);
+while ( $row = $DB->getRawData() ){
+    if ( intval($row['date']) < $cutoff ) continue;
+
+    $drive = $row['drive'];
+    $state = intval($row['state']);
+    if ( $state === 0 ) {
+        if (!isset($STANDBY_COUNTS[$drive])) $STANDBY_COUNTS[$drive] = 0;
+        $STANDBY_COUNTS[$drive] += 1;
+    } else {
+        if (!isset($LIVE_COUNTS[$drive])) $LIVE_COUNTS[$drive] = 0;
+        $LIVE_COUNTS[$drive] += 1;
+    }
 }
 
-while ( $data = $DB->getLiveDisks() ){
-    $DRIVE_STATUS[ $data["drive"] ]['live'] = $data["count"];
+foreach ( $STANDBY_COUNTS as $drive => $cnt ){
+    $DRIVE_STATUS[$drive]['standby'] = $cnt;
+}
+foreach ( $LIVE_COUNTS as $drive => $cnt ){
+    $DRIVE_STATUS[$drive]['live'] = $cnt;
 }
 
 if( count($DRIVE_STATUS) !== 0 ) {
@@ -96,6 +124,14 @@ if( count($DRIVE_STATUS) !== 0 ) {
 
 <div class="DSM-wrapper">
     <div class="DSM-container">
+        <div class="DSM-reset-db" style="margin-right: 20px;">
+            <label for="DSM-days" style="display:block;">Average Window</label>
+            <select id="DSM-days">
+                <? foreach ($allowedWindows as $w) { ?>
+                    <option value="<?=$w?>" <? if ($w == $days) print('selected'); ?>><?=$w?> days</option>
+                <? } ?>
+            </select>
+        </div>
         <?if( count($DRIVE_STATUS) === 0 ) {?>
         No data has been collected yet.
         Please wait up to 20 minutes for an update to occur.
@@ -135,6 +171,14 @@ async function resetDB(){
 }
 
 document.addEventListener( 'DOMContentLoaded', () => {
+    // Days dropdown: reload with ?days=N
+    document.querySelector("#DSM-days").addEventListener("change", (e) => {
+        const val = e.target.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('days', val);
+        window.location.href = url.toString();
+    });
+
     document.querySelector("#DSM-reset-db").addEventListener("click", () => {
         
         const confirmation = confirm("Are you sure you want to delete all previously logged data?\nThis cannot be undone.");

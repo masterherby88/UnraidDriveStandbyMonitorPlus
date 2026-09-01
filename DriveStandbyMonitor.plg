@@ -3,14 +3,14 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name           "DriveStandbyMonitor">
 <!ENTITY author         "masterherby88 (forked from EldonMcGuinness)">
-<!ENTITY version        "2026.09.01-001">
+<!ENTITY version        "2026.09.01-004">
 <!ENTITY launch         "Tools/DriveStandbyMonitor"> 
 <!ENTITY pluginURL      "https://raw.githubusercontent.com/masterherby88/UnraidDriveStandbyMonitorPlus">
 <!ENTITY boot           "/boot/config/plugins/&name;">
 <!ENTITY emhttp         "/usr/local/emhttp/plugins/&name;">
 <!ENTITY source         "&boot;/&name;">
 <!ENTITY supportURL     "{https://forums.unraid.net/topic/147982-drive-standby-monitor-plugin-support/}">
-<!ENTITY md5            "5f722effb018000250048a8e4da789b8">
+<!ENTITY md5            "78244e79b746c51fecd3d83828f14d5b">
 <!ENTITY branch         "feature/spinup-metrics">
 ]>
 

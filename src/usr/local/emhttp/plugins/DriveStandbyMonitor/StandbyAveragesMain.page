@@ -18,12 +18,35 @@ $DB = new DSMDB( $DB_FILE );
 # Temporary storage for $disk array that is being manipulated
 $DRIVE_STATUS = array();
 
+$days = 30;
+
 while ($data = $DB->getLiveDisks()){
     $DRIVE_STATUS[ $data["drive"] ]['live'] = $data["count"];
 }
 
 while ($data = $DB->getStandbyDisks()){
     $DRIVE_STATUS[ $data["drive"] ]['standby'] = $data["count"];
+}
+
+# Spinups today (per drive)
+while ($data = $DB->getSpinupsToday()){
+    $DRIVE_STATUS[ $data["drive"] ]['spinups_today'] = intval($data["count"]);
+}
+
+# Spinups per day (last $days days) used for avg + max
+$SPINUP_TOTALS = array();
+$SPINUP_DAYCOUNTS = array();
+$SPINUP_MAX = array();
+while ($data = $DB->getDailySpinupCounts($days)){
+    $drive = $data["drive"];
+    $count = intval($data["count"]);
+    if (!isset($SPINUP_TOTALS[$drive])) $SPINUP_TOTALS[$drive] = 0;
+    if (!isset($SPINUP_DAYCOUNTS[$drive])) $SPINUP_DAYCOUNTS[$drive] = 0;
+    if (!isset($SPINUP_MAX[$drive])) $SPINUP_MAX[$drive] = 0;
+
+    $SPINUP_TOTALS[$drive] += $count;
+    $SPINUP_DAYCOUNTS[$drive] += 1;
+    if ($count > $SPINUP_MAX[$drive]) $SPINUP_MAX[$drive] = $count;
 }
 
 if( count($DRIVE_STATUS) !== 0 ) {
@@ -47,6 +70,13 @@ if( count($DRIVE_STATUS) !== 0 ) {
         }else{
             $DRIVE_STATUS[$key]['avg'] = round( ( 100 * ( $standby / ($live + $standby) ) ), 2 );
         }
+
+        # Spinup metrics
+        $spin_total = $SPINUP_TOTALS[$key] ?? 0;
+        $spin_days = $SPINUP_DAYCOUNTS[$key] ?? 0;
+        $DRIVE_STATUS[$key]['spinups_avg'] = ($spin_days > 0) ? round($spin_total / $spin_days, 2) : 0;
+        $DRIVE_STATUS[$key]['spinups_max'] = $SPINUP_MAX[$key] ?? 0;
+        $DRIVE_STATUS[$key]['spinups_today'] = $DRIVE_STATUS[$key]['spinups_today'] ?? 0;
     }
 
     # Sort the list
@@ -96,13 +126,9 @@ if( count($DRIVE_STATUS) !== 0 ) {
                 <td title="">Device</td>
                 <td title="">Identification</td>
                 <td title="" style="text-align:center;">Standby</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td title="" style="text-align:center;">Spinups (avg)</td>
+                <td title="" style="text-align:center;">Spinups (max/day)</td>
+                <td title="" style="text-align:center;">Spinups (today)</td>
             </tr>
         </thead>
         <tbody>
@@ -128,13 +154,15 @@ if( count($DRIVE_STATUS) !== 0 ) {
                 <td style="text-align:center;">
                     <? print($val['avg'] . '%'); ?>
                 </td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td style="text-align:center;">
+                    <? print($val['spinups_avg']); ?>
+                </td>
+                <td style="text-align:center;">
+                    <? print($val['spinups_max']); ?>
+                </td>
+                <td style="text-align:center;">
+                    <? print($val['spinups_today']); ?>
+                </td>
             </tr>
         <? endforeach; ?>
         <?}?>

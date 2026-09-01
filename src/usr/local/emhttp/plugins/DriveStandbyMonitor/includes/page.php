@@ -103,6 +103,8 @@ class DSMDB extends SQLite3 {
     private $getLiveDisksResults = false;
     private $getRawDataResults = false;
     private $getRawDataDisksResults = false;
+    private $getSpinupsTodayResults = false;
+    private $getDailySpinupCountsResults = false;
 
     public function __construct( $dbname ){
         $this->open( $dbname );
@@ -113,6 +115,72 @@ class DSMDB extends SQLite3 {
     # Helper function to create the table if needed
     private function createTable(){
         $this->exec("CREATE TABLE IF NOT EXISTS 'standby' ( id INTEGER PRIMARY KEY AUTOINCREMENT, drive VARCHAR(32), state INTEGER, date INTEGER );");
+    }
+
+    # Spinups are inferred from the existing standby table by detecting 0->1 transitions.
+    # This avoids any DB schema change.
+    public function getSpinupsToday() {
+        if ( $this->getSpinupsTodayResults === false ) {
+            $sql = "WITH ordered AS (\n".
+                   "  SELECT drive, state, date,\n".
+                   "         LAG(state) OVER (PARTITION BY drive ORDER BY date) AS prev_state\n".
+                   "  FROM standby\n".
+                   "  WHERE date >= strftime('%s','now','start of day')\n".
+                   ")\n".
+                   "SELECT drive, SUM(CASE WHEN state=1 AND IFNULL(prev_state,0)=0 THEN 1 ELSE 0 END) AS count\n".
+                   "FROM ordered\n".
+                   "GROUP BY drive;";
+            $this->getSpinupsTodayResults = $this->query( $sql );
+        }
+
+        if ( $this->getSpinupsTodayResults ) {
+            $row = $this->getSpinupsTodayResults->fetchArray(SQLITE3_ASSOC);
+        } else {
+            $row = false;
+        }
+
+        if ( $row === false ) {
+            $this->getSpinupsTodayResults = false;
+        }
+
+        return $row;
+    }
+
+    # Daily spinup counts per drive (last N days).
+    public function getDailySpinupCounts( $days = 30 ) {
+        if ( $this->getDailySpinupCountsResults === false ) {
+            $days = intval($days);
+            if ( $days < 1 ) $days = 1;
+            if ( $days > 365 ) $days = 365;
+
+            $sql = "WITH base AS (\n".
+                   "  SELECT drive, state, date,\n".
+                   "         LAG(state) OVER (PARTITION BY drive ORDER BY date) AS prev_state\n".
+                   "  FROM standby\n".
+                   "  WHERE date >= strftime('%s','now','-'||$days||' day')\n".
+                   "), spins AS (\n".
+                   "  SELECT drive, date(date, 'unixepoch', 'localtime') AS day,\n".
+                   "         CASE WHEN state=1 AND IFNULL(prev_state,0)=0 THEN 1 ELSE 0 END AS spin\n".
+                   "  FROM base\n".
+                   ")\n".
+                   "SELECT drive, day, SUM(spin) AS count\n".
+                   "FROM spins\n".
+                   "GROUP BY drive, day\n".
+                   "ORDER BY drive ASC, day DESC;";
+            $this->getDailySpinupCountsResults = $this->query( $sql );
+        }
+
+        if ( $this->getDailySpinupCountsResults ) {
+            $row = $this->getDailySpinupCountsResults->fetchArray(SQLITE3_ASSOC);
+        } else {
+            $row = false;
+        }
+
+        if ( $row === false ) {
+            $this->getDailySpinupCountsResults = false;
+        }
+
+        return $row;
     }
 
     # Get a count of the standby logs for the drives

@@ -17,7 +17,7 @@ $settings['AVG_WINDOW_DAYS'] = $days;
 // write back
 $lines = "";
 foreach ($settings as $k => $v) {
-    // keep it simple; numeric values only currently
+    // keep it simple; string/numeric values
     $lines .= $k . "=\"" . $v . "\"\n";
 }
 file_put_contents($cfgFile, $lines);

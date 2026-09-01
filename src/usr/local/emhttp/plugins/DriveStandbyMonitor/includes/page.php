@@ -3,8 +3,15 @@
 libxml_use_internal_errors(true); # Suppress any warnings from xml errors.
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp';
 $pluginRoot = "$docroot/plugins/$scriptName";
+
+# Pull in defaults + persisted user settings
 $defaults = @parse_ini_file("$docroot/plugins/DriveStandbyMonitor/default.cfg") ?: [];
-$DB_FILE = $defaults["DB_LOCATION"];
+
+# Pull in user settings (persisted under /boot/config)
+$settings = @parse_ini_file("/boot/config/plugins/DriveStandbyMonitor/settings.cfg") ?: [];
+$defaults = array_merge($defaults, $settings);
+
+$DB_FILE = $defaults["DB_LOCATION"] ?? "/boot/config/plugins/DriveStandbyMonitor/monitor.db";
 
 # Pull in data about the disks
 $disks = @parse_ini_file("$docroot/state/disks.ini", true);
@@ -13,12 +20,6 @@ $disks = array_merge_recursive(
     @parse_ini_file("$docroot/state/devs.ini",true)?:[]
 );
 
-# Pull in some defaults
-$defaults = @parse_ini_file("$docroot/plugins/DriveStandbyMonitor/default.cfg") ?: [];
-
-# Pull in user settings (persisted under /boot/config)
-$settings = @parse_ini_file("/boot/config/plugins/DriveStandbyMonitor/settings.cfg") ?: [];
-$defaults = array_merge($defaults, $settings);
 
 # Used to strip out unused devices and limit the returned data
 class DisksInfo {

@@ -23,6 +23,10 @@ Adds extra columns to the existing table view:
 - `Spinups (max/day)`
 - `Spinups (today)`
 
+Main displays these metrics in an Unraid-styled, theme-aware table. The
+standby table intentionally does not use the `disk_status` class, preventing
+the Disk Activity plugin from adding an empty activity column to it.
+
 ### Unraid → Tools → DriveStandbyMonitor
 
 This page is used as the **single source of truth** for the averaging window.

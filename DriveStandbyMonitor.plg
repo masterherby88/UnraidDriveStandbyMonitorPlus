@@ -3,14 +3,14 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name           "DriveStandbyMonitor">
 <!ENTITY author         "masterherby88 (forked from EldonMcGuinness)">
-<!ENTITY version        "2026.09.01-005">
+<!ENTITY version        "2026.11.10-001">
 <!ENTITY launch         "Tools/DriveStandbyMonitor"> 
 <!ENTITY pluginURL      "https://raw.githubusercontent.com/masterherby88/UnraidDriveStandbyMonitorPlus">
 <!ENTITY boot           "/boot/config/plugins/&name;">
 <!ENTITY emhttp         "/usr/local/emhttp/plugins/&name;">
 <!ENTITY source         "&boot;/&name;">
 <!ENTITY supportURL     "{https://forums.unraid.net/topic/147982-drive-standby-monitor-plugin-support/}">
-<!ENTITY md5            "0cf8c4bbdd4e3915125af68752aacaac">
+<!ENTITY md5            "909c0d9bff8aa89433013e554628e4c1">
 <!ENTITY branch         "feature/spinup-metrics">
 ]>
 
@@ -24,6 +24,15 @@
 <CHANGES>
 ##Drive Standby Monitor
 ###&version;
+
+- Style the Main page table using Unraid's native table and theme container.
+- Prevent Disk Activity from adding an empty Activity column to standby statistics.
+
+###2026.09.01-005
+
+- Added Tools-based drive selection for the Main page.
+
+###2024.05.10-001
 
 - Fixed a bug that could prevent proper fetching of data
 

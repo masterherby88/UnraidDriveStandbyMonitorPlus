@@ -132,29 +132,68 @@ if( count($DRIVE_STATUS) !== 0 ) {
     color:grey;
 }
 
-.show-standby table tbody tr,
-.show-standby table tbody tr:nth-child(even) {
-    background-color:inherit;
+/* Use the native Unraid table and container so installed themes can style it.
+   This is not a disk_status table: disk-activity plugins target that class
+   and would otherwise inject an unrelated, empty Activity column here. */
+.show-standby .TableContainer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
+.show-standby table.standby-status {
+    table-layout: fixed;
+    min-width: 1000px;
+}
+
+.show-standby table.standby-status tr > td:nth-child(1) { width: 13%; }
+.show-standby table.standby-status tr > td:nth-child(2) { width: 30%; }
+.show-standby table.standby-status tr > td:nth-child(n + 3) {
+    text-align: right;
+}
+.show-standby table.standby-status tr > td:nth-child(3) { width: 12.5%; }
+.show-standby table.standby-status tr > td:nth-child(4) { width: 14%; }
+.show-standby table.standby-status tr > td:nth-child(5) { width: 16.5%; }
+.show-standby table.standby-status tr > td:nth-child(6) { width: 14%; }
+.show-standby table.standby-status tr > td:last-child { padding-right: 8px; }
+
+/* Match the roomier device tables while keeping colors theme-controlled. */
+.show-standby table.standby-status thead td {
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+    background-color: var(--tp-subtle, var(--table-header-background-color, transparent));
+}
+.show-standby table.standby-status tbody td {
+    padding-top: 1.1rem;
+    padding-bottom: 1.1rem;
+    vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+}
+.show-standby table.standby-status tbody td:first-child {
+    font-weight: 600;
+}
+.show-standby table.standby-status .standby-empty {
+    white-space: normal;
+}
+.show-standby.edit-standby .standby-drive { cursor: pointer; }
 
 </style>
 
 <div class="show-standby">
-    <table class="disk_status wide">
+    <div class="TableContainer">
+    <table class="unraid standby-status wide">
         <thead>
             <tr>
-                <td title="">Device</td>
-                <td title="">Identification</td>
-                <td title="" style="text-align:center;">Standby</td>
-                <td title="" style="text-align:center;">Spinups (avg)</td>
-                <td title="" style="text-align:center;">Spinups (max/day)</td>
-                <td title="" style="text-align:center;">Spinups (today)</td>
+                <td>Device</td>
+                <td>Identification</td>
+                <td>Standby</td>
+                <td>Spinups (avg)</td>
+                <td>Spinups (max/day)</td>
+                <td>Spinups (today)</td>
             </tr>
         </thead>
         <tbody>
         <?if( count($DRIVE_STATUS) === 0 ) {?>
             <tr>
-                <td>
+                <td colspan="6" class="standby-empty">
                     No data has been collected yet<br/>
                     Please wait up to 20 minutes for an update to occur.
                 </td>
@@ -189,16 +228,16 @@ if( count($DRIVE_STATUS) !== 0 ) {
                     <i class="icon-disk icon"></i>
                     <?=$key." - (".$val['device'].")"?>
                 </td>
-                <td style="text-align:center;">
+                <td>
                     <? print($val['avg'] . '%'); ?>
                 </td>
-                <td style="text-align:center;">
+                <td>
                     <? print($val['spinups_avg']); ?>
                 </td>
-                <td style="text-align:center;">
+                <td>
                     <? print($val['spinups_max']); ?>
                 </td>
-                <td style="text-align:center;">
+                <td>
                     <? print($val['spinups_today']); ?>
                 </td>
             </tr>
@@ -206,6 +245,7 @@ if( count($DRIVE_STATUS) !== 0 ) {
         <?}?>
         </tbody>
     </table>
+    </div>
 </div>
 
 <script type="text/javascript">
